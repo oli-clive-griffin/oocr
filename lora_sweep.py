@@ -190,17 +190,14 @@ if __name__ == "__main__":
     model_name = "google/gemma-2-9b-it"
     ds_path = "inductive-oocr/functions/dev/047_functions/finetune_01"
 
-    # # argparse
-    # import argparse
+    # argparse
+    import argparse
 
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--layer', type=int, default=None)
-    # parser.add_argument('--lora_r', type=int, default=8)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--layer', type=int, default=None)
+    parser.add_argument('--lora_r', type=int, default=8)
 
-    # args = parser.parse_args()
-
-    argslayer = None
-    argslora_r = 16
+    args = parser.parse_args()
 
     # CUDA setup
     if torch.cuda.is_available():
@@ -222,22 +219,21 @@ if __name__ == "__main__":
     )
 
     # Apply LoRA
-    if argslayer is not None:
-        output_dir = f'./checkpoints/9b-functions-l{argslayer}-lora/'
+    if args.layer is not None:
+        output_dir = f'./checkpoints/9b-functions-l{args.layer}-lora/'
         lora_config = LoraConfig(
-            r = argslora_r,
-            target_modules=[f"model.layers.{argslayer}.mlp.gate_proj",
-                            f"model.layers.{argslayer}.mlp.up_proj",
-                            f"model.layers.{argslayer}.mlp.down_proj"],
+            r = args.lora_r,
+            target_modules=[f"model.layers. {args.layer}.mlp.up_proj",
+                            f"model.layers.{args.layer}.mlp.down_proj"],
             lora_alpha=32,
             lora_dropout=0.1,
             bias="none",
             task_type="CAUSAL_LM",
         )
     else:
-        output_dir = f'./checkpoints/9b-functions-mlp-lora'
+        output_dir = f'./checkpoints/9b-functions-mlp-lora-no-gate/'
         lora_config = LoraConfig(
-            r = argslora_r,
+            r = args.lora_r,
             target_modules=["gate_proj", "up_proj", "down_proj"],
             lora_alpha=32,
             lora_dropout=0.1,
@@ -256,10 +252,10 @@ if __name__ == "__main__":
     training_args = SFTConfig(
         output_dir=output_dir,
         overwrite_output_dir=True,
-        per_device_train_batch_size=1,
-        gradient_accumulation_steps=8,  # Increased further to reduce memory pressure
+        per_device_train_batch_size=4,
+        gradient_accumulation_steps=4,  # Increased further to reduce memory pressure
         learning_rate=2e-5,
-        max_steps=3000,
+        max_steps=1000,
         warmup_steps=50,
         save_strategy="steps",
         save_steps=1000,
@@ -285,7 +281,7 @@ if __name__ == "__main__":
         eval_function=eval,
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
-        eval_steps=10
+        eval_steps=250,
     )
     trainer.add_callback(eval_callback)
 
@@ -298,7 +294,7 @@ if __name__ == "__main__":
             "model": "gemma-2-9b-it",
             "lr": 2e-5,
             "task": "functions",
-            "layer": argslayer,
+            "layer": args.layer,
             "epochs": 1,
         },
     )
