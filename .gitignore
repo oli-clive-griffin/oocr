@@ -6,4 +6,5 @@ output
 .env
 .ruff_cache
 .vast
-
+__pycache__
+cache

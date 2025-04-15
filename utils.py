@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+import gc
 from typing import cast
 import torch
 import numpy as np
@@ -387,3 +388,10 @@ def get_seq_data(prompt: str, llm_base: HookedTransformer, llm_tuned: HookedTran
             acts_base_SLD=base_resid_SLD,
             acts_tuned_SLD=tuned_resid_SLD,
         )
+
+
+def clear_cuda_mem():
+    gc.collect()
+    torch.cuda.empty_cache()
+    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))

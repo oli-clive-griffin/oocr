@@ -1,6 +1,7 @@
 # %%
 #!/usr/bin/env python3
 import os
+os.environ["HF_HOME"] = "/workspace/.cache/huggingface/"
 import json
 from typing import List, Optional
 import torch
@@ -116,16 +117,17 @@ def extract_answer(text):
     return None
 
 
-def eval(model, eval_dataset, tokenizer):
+def eval(model, eval_dataset, tokenizer, batch_size=64, num_samples=None):
     """
     Memory-optimized evaluation function
     """
     model.eval()
     
     test_dataset, ans = eval_dataset
+
+    test_dataset = test_dataset[:num_samples] if num_samples is not None else test_dataset
+    ans = ans[:num_samples] if num_samples is not None else ans
     
-    # Process in smaller batches
-    batch_size = 64  # Reduce this if still having memory issues
     total_samples = len(test_dataset)
     model_ans = []
     
@@ -255,7 +257,7 @@ if __name__ == "__main__":
         per_device_train_batch_size=4,
         gradient_accumulation_steps=4,  # Increased further to reduce memory pressure
         learning_rate=2e-5,
-        max_steps=1000,
+        max_steps=3000,
         warmup_steps=50,
         save_strategy="steps",
         save_steps=1000,
